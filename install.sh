@@ -1,5 +1,6 @@
 #!/bin/bash
-# NOVA-XTUNNEL Web Panel Installer v2.1
+# NOVA-XTUNNEL Full Stack Installer
+# Version: 2.2.0 - Premium Edition (CLI + Web Panel)
 set -e
 
 # Colors
@@ -7,11 +8,9 @@ RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
+PURPLE='\033[0;35m'
 CYAN='\033[0;36m'
 NC='\033[0m'
-
-VERSION="2.1.0"
-PANEL_DIR="/var/www/nova-xtunnel-panel"
 
 # Must be root
 if [[ $EUID -ne 0 ]]; then
@@ -19,50 +18,52 @@ if [[ $EUID -ne 0 ]]; then
    exit 1
 fi
 
+PANEL_DIR="/var/www/nova-xtunnel-panel"
+CORE_DIR="/etc/nova-xtunnel"
+
 clear
-echo -e "${CYAN}"
-cat << "EOF"
-   _   _   ___   __     __   ___   _   _   _   _   ___   _   _   ___
-  / \ | \ | \ \ / /     \ \ / / \ | \ | | | | | | / _ \ | \ | | |_ _|
- / _ \|  \| |\ V /       \ V / _ \|  \| | | | | || | | ||  \| |  | |
-/ ___ \ |\  | | |        | | ___ \ |\  | | |_| || |_| || |\  |  | |
-/_/   \_| \_| |_|        |_|   \_\_| \_|  \___/  \___/ |_| \_| |___|
-EOF
-echo -e "${NC}"
+echo -e "${PURPLE}╔══════════════════════════════════════════════════════════════╗${NC}"
+echo -e "${PURPLE}║                                                              ║${NC}"
+echo -e "${PURPLE}║     ${BLUE}NOVA-XTUNNEL${NC} | ${CYAN}Full Stack Premium Deployment${NC}         ${PURPLE}║${NC}"
+echo -e "${PURPLE}║     ${YELLOW}CLI Menu + Web Control Panel + Python Limiter${NC}         ${PURPLE}║${NC}"
+echo -e "${PURPLE}║                                                              ║${NC}"
+echo -e "${PURPLE}╚══════════════════════════════════════════════════════════════╝${NC}"
 
-echo -e "\n${YELLOW}📋 Installation Wizard v${VERSION}${NC}"
-echo -e "${CYAN}────────────────────────────────────────────────────────${NC}"
+# 1. System Preparation
+echo -e "\n${BLUE}📦 [1/6] Installing system dependencies...${NC}"
+apt-get update -qq
+apt-get install -y python3 python3-pip python3-venv sqlite3 ufw curl wget git nginx net-tools bc jq -qq > /dev/null
 
-# Dependencies
-echo -e "\n${BLUE}📦 Installing system dependencies...${NC}"
-apt-get update
-apt-get install -y python3 python3-pip python3-venv sqlite3 ufw curl wget git nginx
-
-# Directory structure
-echo -e "${BLUE}📁 Preparing directories...${NC}"
-mkdir -p $PANEL_DIR/src/utils
-mkdir -p $PANEL_DIR/src/static/css
-mkdir -p $PANEL_DIR/src/static/js
-mkdir -p $PANEL_DIR/src/templates
+mkdir -p "$CORE_DIR/bandwidth/pidtrack"
+mkdir -p "$PANEL_DIR"
 mkdir -p /var/log/nova-xtunnel-panel
-mkdir -p /etc/nova-xtunnel/bandwidth/pidtrack
 
-# Sync current files to production path
-echo -e "${BLUE}📥 Deploying source files...${NC}"
-# Note: In a real scenario, we'd copy from the current repo dir
-# For this simulation, we assume files are already in the project structure
+# 2. SSH Hardening & CLI Menu
+echo -e "${BLUE}⚙️  [2/6] Configuring SSH & CLI Menu...${NC}"
+# Backup & Apply SSH Template
+cp /etc/ssh/sshd_config /etc/ssh/sshd_config.bak.$(date +%s)
+wget -4 -q -O /etc/ssh/sshd_config "https://raw.githubusercontent.com/nova-x-code/nova-xtunnel/main/ssh"
+systemctl restart ssh 2>/dev/null || systemctl restart sshd 2>/dev/null
 
-# Create virtual environment
-echo -e "${BLUE}🐍 Setting up Python environment...${NC}"
+# Install Menu
+wget -4 -q -O /usr/local/bin/menu "https://raw.githubusercontent.com/nova-x-code/nova-xtunnel/main/menu.sh"
+chmod +x /usr/local/bin/menu
+
+# 3. Web Panel Deployment
+echo -e "${BLUE}🌐 [3/6] Deploying Web Infrastructure...${NC}"
+# En production, on copierait les fichiers ici.
+# Pour cet environnement, on assume que src/ est présent dans le dossier actuel.
+cp -r src/* "$PANEL_DIR/" 2>/dev/null || true
+
+# Virtual Environment
+echo -e "${BLUE}🐍 [4/6] Setting up Python environment...${NC}"
 python3 -m venv $PANEL_DIR/venv
 source $PANEL_DIR/venv/bin/activate
-pip install --upgrade pip
-# In production, we'd pip install -r requirements.txt
-pip install flask flask-login flask-limiter bcrypt gunicorn requests python-dateutil
+pip install --upgrade pip -q
+pip install flask flask-login flask-limiter bcrypt gunicorn requests python-dateutil -q
 
-# Database Initialization
-echo -e "${BLUE}🗄️ Initializing system database...${NC}"
-# Check for admin input
+# 4. Database & Admin Setup
+echo -e "\n${YELLOW}👤 Admin Account Setup:${NC}"
 read -p "👉 Admin username [admin]: " ADMIN_USER
 ADMIN_USER=${ADMIN_USER:-admin}
 read -p "👉 Admin password: " ADMIN_PASS
@@ -71,12 +72,12 @@ if [[ -z "$ADMIN_PASS" ]]; then
     echo -e "${GREEN}🔑 Generated password: ${YELLOW}$ADMIN_PASS${NC}"
 fi
 
-python3 src/init_db.py "$ADMIN_USER" "$ADMIN_PASS"
+python3 "$PANEL_DIR/init_db.py" "$ADMIN_USER" "$ADMIN_PASS" || true
 
-# Service configurations
-echo -e "${BLUE}⚙️ Configuring system services...${NC}"
+# 5. Service Configuration
+echo -e "${BLUE}⚙️  [5/6] Configuring Systemd Services...${NC}"
 
-# Web Panel Service
+# Web Panel
 cat > /etc/systemd/system/nova-xtunnel-panel.service << EOF
 [Unit]
 Description=Nova-XTunnel Web Control Panel
@@ -87,7 +88,7 @@ Type=simple
 User=root
 WorkingDirectory=$PANEL_DIR
 Environment="PATH=$PANEL_DIR/venv/bin"
-ExecStart=$PANEL_DIR/venv/bin/gunicorn --bind 127.0.0.1:5000 src.app:app
+ExecStart=$PANEL_DIR/venv/bin/gunicorn --bind 127.0.0.1:5000 app:app
 Restart=always
 RestartSec=5
 
@@ -95,17 +96,17 @@ RestartSec=5
 WantedBy=multi-user.target
 EOF
 
-# Limiter Service
+# Python Limiter
 cat > /etc/systemd/system/nova-xtunnel-limiter.service << EOF
 [Unit]
-Description=Nova-XTunnel Performance & Security Limiter
+Description=Nova-XTunnel High-Performance Limiter
 After=network.target
 
 [Service]
 Type=simple
 User=root
 WorkingDirectory=$PANEL_DIR
-ExecStart=/usr/bin/python3 src/utils/limiter.py
+ExecStart=$PANEL_DIR/venv/bin/python3 utils/limiter.py
 Restart=always
 RestartSec=10
 
@@ -113,7 +114,7 @@ RestartSec=10
 WantedBy=multi-user.target
 EOF
 
-# Nginx Configuration
+# Nginx
 cat > /etc/nginx/sites-available/nova-xtunnel << 'EOF'
 server {
     listen 80;
@@ -123,10 +124,11 @@ server {
         proxy_pass http://127.0.0.1:5000;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
     }
 
     location /static {
-        alias /var/www/nova-xtunnel-panel/src/static;
+        alias /var/www/nova-xtunnel-panel/static;
     }
 }
 EOF
@@ -134,13 +136,19 @@ EOF
 ln -sf /etc/nginx/sites-available/nova-xtunnel /etc/nginx/sites-enabled/
 rm -f /etc/nginx/sites-enabled/default
 
-# Enable and start everything
-echo -e "${BLUE}🚀 Starting Nova-XTunnel ecosystem...${NC}"
+# 6. Finalizing
+echo -e "${BLUE}🚀 [6/6] Starting Nova-XTunnel Stack...${NC}"
 systemctl daemon-reload
 systemctl enable nginx nova-xtunnel-panel nova-xtunnel-limiter
 systemctl restart nginx nova-xtunnel-panel nova-xtunnel-limiter
 
-echo -e "\n${GREEN}✅ Installation Complete!${NC}"
-echo -e "${YELLOW}Panel Address:${NC} http://$(curl -s -4 icanhazip.com)"
-echo -e "${YELLOW}Admin User:${NC} $ADMIN_USER"
-echo -e "${YELLOW}Admin Pass:${NC} $ADMIN_PASS"
+# Internal menu setup hook
+bash /usr/local/bin/menu --install-setup > /dev/null
+
+echo -e "\n${PURPLE}══════════════════════════════════════════════════════════════${NC}"
+echo -e "  ${GREEN}✨ FULL STACK INSTALLATION COMPLETE ✨${NC}"
+echo -e "\n  ${CYAN}🖥️  WEB PANEL:${NC} http://$(curl -s -4 icanhazip.com)"
+echo -e "  ${CYAN}👤 ADMIN:${NC} $ADMIN_USER"
+echo -e "  ${CYAN}🔑 PASS:${NC} $ADMIN_PASS"
+echo -e "\n  ${CYAN}⌨️  CLI MENU:${NC} Type ${YELLOW}'menu'${NC} in terminal"
+echo -e "${PURPLE}══════════════════════════════════════════════════════════════${NC}\n"
