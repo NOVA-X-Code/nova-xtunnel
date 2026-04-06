@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nova-XTunnel | Premium Reseller Panel</title>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <!-- Sidebar -->
+    <aside class="sidebar">
+        <div class="sidebar-brand">
+            <h2>NOVA-XTUNNEL</h2>
+        </div>
+        <nav class="nav-menu">
+            <a href="#" class="nav-link active" onclick="showSection('dashboard', this)">
+                <i class="fas fa-grid-2"></i>
+                <span>Dashboard</span>
+            </a>
+            <a href="#" class="nav-link" onclick="showSection('accounts', this)">
+                <i class="fas fa-users-gear"></i>
+                <span>SSH Accounts</span>
+            </a>
+            <a href="#" class="nav-link" onclick="showSection('settings', this)">
+                <i class="fas fa-sliders"></i>
+                <span>Settings</span>
+            </a>
+        </nav>
+        <div class="nav-menu">
+            <a href="{{ url_for('logout') }}" class="nav-link" style="color: var(--danger)">
+                <i class="fas fa-power-off"></i>
+                <span>Logout</span>
+            </a>
+        </div>
+    </aside>
+
+    <main class="main-wrapper">
+        <!-- Top Bar -->
+        <header class="top-bar">
+            <div class="page-title">
+                <h1>Reseller Dashboard</h1>
+                <p>Welcome back, {{ current_user.username }}</p>
+            </div>
+            <div class="glass-card" style="padding: 10px 20px; display: flex; align-items: center; gap: 15px;">
+                <div class="status-badge status-active">Online</div>
+                <div style="text-align: right">
+                    <div style="font-weight: 600; font-size: 14px;">{{ current_user.username }}</div>
+                    <div style="font-size: 11px; color: var(--text-dim)">Standard Reseller</div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Expiry Warning -->
+        {% if expiry_date %}
+        <div class="glass-card animate-fade" style="padding: 20px; margin-bottom: 30px; border-left: 4px solid var(--warning); display: flex; justify-content: space-between; align-items: center;">
+            <div style="display: flex; align-items: center; gap: 15px;">
+                <i class="fas fa-calendar-clock" style="font-size: 24px; color: var(--warning)"></i>
+                <div>
+                    <div style="font-weight: 600;">Subscription Period</div>
+                    <div style="font-size: 13px; color: var(--text-muted)">Your reseller access expires on {{ expiry_date }}</div>
+                </div>
+            </div>
+            <div class="status-badge" style="background: rgba(245, 158, 11, 0.1); color: var(--warning)">
+                {{ days_left }} Days Remaining
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Stats Grid -->
+        <section id="dashboard-section" class="animate-fade">
+            <div class="stats-container">
+                <div class="glass-card stat-item">
+                    <div class="stat-label">Active Connections</div>
+                    <div class="stat-value" id="online-count">{{ online_count }}</div>
+                    <div class="stat-trend trend-up">
+                        <i class="fas fa-chart-line"></i>
+                        Live users tracking
+                    </div>
+                </div>
+                <div class="glass-card stat-item">
+                    <div class="stat-label">Total Managed Users</div>
+                    <div class="stat-value">{{ user_count }} <span style="font-size: 18px; color: var(--text-dim)">/ {{ max_users if max_users > 0 else '∞' }}</span></div>
+                    <div class="progress-bar" style="margin-top: 15px;">
+                        <div class="progress-fill" style="width: {{ (user_count / max_users * 100) if max_users > 0 else 5 }}%"></div>
+                    </div>
+                </div>
+                <div class="glass-card stat-item">
+                    <div class="stat-label">Bandwidth Consumed</div>
+                    <div class="stat-value">{{ bandwidth_used_gb }} <span style="font-size: 18px; color: var(--text-dim)">GB</span></div>
+                    <div class="stat-trend">
+                        Limit: {{ max_bandwidth_gb if max_bandwidth_gb > 0 else 'Unlimited' }} GB
+                    </div>
+                </div>
+            </div>
+
+            <!-- Online Users Section -->
+            <div class="glass-card" style="padding: 30px;">
+                <h3 style="margin-bottom: 20px; font-weight: 600; display: flex; align-items: center; gap: 10px;">
+                    <i class="fas fa-satellite-dish" style="color: var(--primary)"></i>
+                    Live User Activity
+                </h3>
+                <div id="online-users-list" style="display: flex; flex-wrap: wrap; gap: 10px;">
+                    {% for user in online_users %}
+                    <div class="status-badge status-active animate-fade">
+                        <i class="fas fa-user" style="margin-right: 5px;"></i> {{ user }}
+                    </div>
+                    {% else %}
+                    <div style="color: var(--text-dim); font-style: italic;">No active sessions at the moment.</div>
+                    {% endfor %}
+                </div>
+            </div>
+        </section>
+
+        <!-- Accounts Section -->
+        <section id="accounts-section" style="display: none;" class="animate-fade">
+            <div class="glass-card" style="padding: 30px; margin-bottom: 30px;">
+                <h3 style="margin-bottom: 25px;">Create New SSH Account</h3>
+                <form action="/account/create" method="POST" class="form-grid" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px;">
+                    <div class="input-group">
+                        <label>Username</label>
+                        <input type="text" name="username" class="premium-input" placeholder="e.g. john_doe" required>
+                    </div>
+                    <div class="input-group">
+                        <label>Password</label>
+                        <input type="text" name="password" class="premium-input" placeholder="Leave blank for random">
+                    </div>
+                    <div class="input-group">
+                        <label>Duration (Days)</label>
+                        <input type="number" name="expiry_days" class="premium-input" value="30">
+                    </div>
+                    <div class="input-group">
+                        <label>Simultaneous Connections</label>
+                        <input type="number" name="connection_limit" class="premium-input" value="1">
+                    </div>
+                    <div class="input-group">
+                        <label>Data Limit (GB)</label>
+                        <input type="number" name="bandwidth_limit" class="premium-input" value="0">
+                    </div>
+                    <div style="display: flex; align-items: flex-end;">
+                        <button type="submit" class="btn-premium" style="width: 100%;">
+                            <i class="fas fa-plus"></i> Initialize Account
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <div class="glass-card" style="padding: 30px;">
+                <h3 style="margin-bottom: 20px;">Managed User Base</h3>
+                <div class="data-table-container">
+                    <table id="ssh-accounts-table">
+                        <thead>
+                            <tr>
+                                <th>Identity</th>
+                                <th>Expiry Date</th>
+                                <th>Sessions</th>
+                                <th>Data Used</th>
+                                <th>Status</th>
+                                <th style="text-align: right;">Management</th>
+                            </tr>
+                        </thead>
+                        <tbody id="ssh-accounts-list">
+                            <!-- Populated via JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <script>
+        function showSection(sectionId, element) {
+            document.querySelectorAll('main > section').forEach(s => s.style.display = 'none');
+            document.getElementById(sectionId + '-section').style.display = 'block';
+
+            document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+            element.classList.add('active');
+
+            if (sectionId === 'accounts') loadSSHAccounts();
+        }
+
+        async function loadSSHAccounts() {
+            const response = await fetch('/api/ssh_accounts');
+            const data = await response.json();
+            const tbody = document.getElementById('ssh-accounts-list');
+
+            tbody.innerHTML = data.map(acc => `
+                <tr class="animate-fade">
+                    <td>
+                        <div style="font-weight: 600;">${acc.username}</div>
+                        <div style="font-size: 11px; color: var(--text-dim)">ID: #${acc.id}</div>
+                    </td>
+                    <td style="color: var(--text-muted)">${acc.expiry_date}</td>
+                    <td><span class="status-badge" style="background: rgba(102, 126, 234, 0.1)">${acc.connection_limit} Max</span></td>
+                    <td>
+                        <div style="font-size: 13px;">${acc.bandwidth_used_gb} GB / ${acc.bandwidth_limit_gb > 0 ? acc.bandwidth_limit_gb + ' GB' : '∞'}</div>
+                        <div class="progress-bar" style="width: 80px; height: 4px;">
+                            <div class="progress-fill" style="width: ${acc.bandwidth_limit_gb > 0 ? (acc.bandwidth_used_gb/acc.bandwidth_limit_gb*100) : 0}%"></div>
+                        </div>
+                    </td>
+                    <td>
+                        <span class="status-badge ${acc.status === 'active' ? 'status-active' : 'status-locked'}">
+                            ${acc.status.toUpperCase()}
+                        </span>
+                    </td>
+                    <td style="text-align: right;">
+                        <button class="btn-premium" style="padding: 8px 12px; font-size: 12px;" onclick="location.href='/account/${acc.id}/info'">
+                            <i class="fas fa-info-circle"></i>
+                        </button>
+                        <button class="btn-premium" style="padding: 8px 12px; font-size: 12px; background: var(--danger);" onclick="deleteAccount(${acc.id})">
+                            <i class="fas fa-trash-can"></i>
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function deleteAccount(id) {
+            if(confirm('Are you sure you want to permanently delete this user?')) {
+                const form = document.createElement('form');
+                form.method = 'POST';
+                form.action = `/account/${id}/delete`;
+                document.body.appendChild(form);
+                form.submit();
+            }
+        }
+
+        // Live refresh logic for connections
+        setInterval(async () => {
+            const r = await fetch('/api/stats');
+            const data = await r.json();
+            document.getElementById('online-count').innerText = data.online_count;
+
+            const container = document.getElementById('online-users-list');
+            if (data.online_users.length > 0) {
+                container.innerHTML = data.online_users.map(u => `
+                    <div class="status-badge status-active animate-fade">
+                        <i class="fas fa-user"></i> ${u}
+                    </div>
+                `).join('');
+            } else {
+                container.innerHTML = '<div style="color: var(--text-dim); font-style: italic;">No active sessions at the moment.</div>';
+            }
+        }, 10000);
+
+        // Initial load
+        if (document.getElementById('accounts-section').style.display !== 'none') {
+            loadSSHAccounts();
+        }
+    </script>
+</body>
+</html>

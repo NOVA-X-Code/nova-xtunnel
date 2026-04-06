@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nova-XTunnel | Premium Administrative Control</title>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <!-- Sidebar -->
+    <aside class="sidebar">
+        <div class="sidebar-brand">
+            <h2>NOVA-XTUNNEL</h2>
+        </div>
+        <nav class="nav-menu">
+            <a href="#" class="nav-link active" onclick="showSection('dashboard', this)">
+                <i class="fas fa-chart-pie"></i>
+                <span>Analytics</span>
+            </a>
+            <a href="#" class="nav-link" onclick="showSection('resellers', this)">
+                <i class="fas fa-store-user"></i>
+                <span>Reseller Hub</span>
+            </a>
+            <a href="#" class="nav-link" onclick="showSection('accounts', this)">
+                <i class="fas fa-terminal"></i>
+                <span>Terminal Access</span>
+            </a>
+            <a href="#" class="nav-link" onclick="showSection('zivpn', this)">
+                <i class="fas fa-shield-keyhole"></i>
+                <span>ZiVPN Shield</span>
+            </a>
+        </nav>
+        <div class="nav-menu">
+            <a href="{{ url_for('logout') }}" class="nav-link" style="color: var(--danger)">
+                <i class="fas fa-power-off"></i>
+                <span>System Logout</span>
+            </a>
+        </div>
+    </aside>
+
+    <main class="main-wrapper">
+        <!-- Top Bar -->
+        <header class="top-bar">
+            <div class="page-title">
+                <h1>Admin Command Center</h1>
+                <p>Global infrastructure monitoring & management</p>
+            </div>
+            <div class="glass-card" style="padding: 10px 20px; display: flex; align-items: center; gap: 15px;">
+                <div class="status-badge status-active">Admin Node</div>
+                <div style="text-align: right">
+                    <div style="font-weight: 600; font-size: 14px;">Master Admin</div>
+                    <div style="font-size: 11px; color: var(--text-dim)">Root Access Level</div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Stats Overview -->
+        <section id="dashboard-section" class="animate-fade">
+            <div class="stats-container">
+                <div class="glass-card stat-item">
+                    <div class="stat-label">Live Node Sessions</div>
+                    <div class="stat-value" id="online-count">{{ online_count }}</div>
+                    <div class="stat-trend trend-up">
+                        <i class="fas fa-bolt"></i> Real-time activity
+                    </div>
+                </div>
+                <div class="glass-card stat-item">
+                    <div class="stat-label">Provisioned Accounts</div>
+                    <div class="stat-value">{{ total_accounts }}</div>
+                    <div class="stat-trend">Total system load</div>
+                </div>
+                <div class="glass-card stat-item">
+                    <div class="stat-label">Global Bandwidth</div>
+                    <div class="stat-value">{{ total_bandwidth_gb }} <span style="font-size: 18px;">GB</span></div>
+                    <div class="stat-trend">Aggregated egress data</div>
+                </div>
+                <div class="glass-card stat-item">
+                    <div class="stat-label">Authorized Resellers</div>
+                    <div class="stat-value">{{ total_resellers }}</div>
+                    <div class="stat-trend">Distribution network</div>
+                </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 30px;">
+                <div class="glass-card" style="padding: 30px;">
+                    <h3 style="margin-bottom: 20px;"><i class="fas fa-waveform-path" style="color: var(--primary)"></i> Network Throughput</h3>
+                    <canvas id="mainAnalyticsChart" height="150"></canvas>
+                </div>
+                <div class="glass-card" style="padding: 30px;">
+                    <h3 style="margin-bottom: 20px;"><i class="fas fa-radar" style="color: var(--primary)"></i> Active Proxies</h3>
+                    <div id="active-proxies-list" style="display: flex; flex-direction: column; gap: 15px;">
+                        <!-- Mock active proxies -->
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <span style="font-size: 14px;">WebSocket-TLS</span>
+                            <span class="status-badge status-active">80/443</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <span style="font-size: 14px;">UDP-Custom</span>
+                            <span class="status-badge status-active">36712</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <span style="font-size: 14px;">SlowDNS</span>
+                            <span class="status-badge status-active">53</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Resellers Section -->
+        <section id="resellers-section" style="display: none;" class="animate-fade">
+            <div class="glass-card" style="padding: 30px; margin-bottom: 30px;">
+                <h3>Authorize New Reseller</h3>
+                <form action="/admin/reseller/create" method="POST" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-top: 25px;">
+                    <input type="text" name="username" class="premium-input" placeholder="Identity" required>
+                    <input type="password" name="password" class="premium-input" placeholder="Security Key" required>
+                    <input type="number" name="expiry_days" class="premium-input" placeholder="Access Period (Days)" value="30">
+                    <input type="number" name="max_users" class="premium-input" placeholder="User Credit Limit" value="0">
+                    <input type="number" name="max_bandwidth" class="premium-input" placeholder="Bandwidth Limit (GB)" value="0">
+                    <button type="submit" class="btn-premium">Assign Credentials</button>
+                </form>
+            </div>
+
+            <div class="glass-card" style="padding: 30px;">
+                <div class="data-table-container">
+                    <table id="resellers-table">
+                        <thead>
+                            <tr>
+                                <th>Distributor</th>
+                                <th>Account Lifecycle</th>
+                                <th>Utilization</th>
+                                <th>Data Egress</th>
+                                <th>Operational Status</th>
+                                <th style="text-align: right;">System Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="resellers-list">
+                            <!-- Populated via JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- SSH Terminal Section -->
+        <section id="accounts-section" style="display: none;" class="animate-fade">
+            <div class="glass-card" style="padding: 30px; margin-bottom: 30px;">
+                <h3>Initialize Direct SSH Access</h3>
+                <form action="/account/create" method="POST" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-top: 25px;">
+                    <input type="text" name="username" class="premium-input" placeholder="Username" required>
+                    <input type="text" name="password" class="premium-input" placeholder="Password (Optional)">
+                    <input type="number" name="expiry_days" class="premium-input" value="30">
+                    <input type="number" name="connection_limit" class="premium-input" value="1">
+                    <input type="number" name="bandwidth_limit" class="premium-input" value="0">
+                    <button type="submit" class="btn-premium">Deploy Account</button>
+                </form>
+            </div>
+
+            <div class="glass-card" style="padding: 30px;">
+                <div class="data-table-container">
+                    <table id="ssh-accounts-table">
+                        <thead>
+                            <tr>
+                                <th>User Identity</th>
+                                <th>Access Expiry</th>
+                                <th>Throughput Limit</th>
+                                <th>Current Status</th>
+                                <th style="text-align: right;">Control</th>
+                            </tr>
+                        </thead>
+                        <tbody id="ssh-accounts-list">
+                            <!-- Populated via JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- ZiVPN Section -->
+        <section id="zivpn-section" style="display: none;" class="animate-fade">
+            <div class="glass-card" style="padding: 30px;">
+                <h3 style="margin-bottom: 25px;">ZiVPN Access Control</h3>
+                <form action="/admin/zivpn_passwords" method="POST" style="display: flex; gap: 15px; margin-bottom: 30px;">
+                    <input type="hidden" name="action" value="add">
+                    <input type="text" name="password" class="premium-input" placeholder="New Access Secret" required style="flex: 1;">
+                    <button type="submit" class="btn-premium">Append Secret</button>
+                </form>
+
+                <div id="zivpn-passwords-list" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 15px;">
+                    <!-- Populated via JS -->
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <script>
+        function showSection(sectionId, element) {
+            document.querySelectorAll('main > section').forEach(s => s.style.display = 'none');
+            document.getElementById(sectionId + '-section').style.display = 'block';
+
+            document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+            element.classList.add('active');
+
+            if (sectionId === 'resellers') loadResellers();
+            if (sectionId === 'accounts') loadSSHAccounts();
+            if (sectionId === 'zivpn') loadZivpn();
+        }
+
+        async function loadResellers() {
+            const r = await fetch('/api/resellers');
+            const data = await r.json();
+            document.getElementById('resellers-list').innerHTML = data.map(res => `
+                <tr class="animate-fade">
+                    <td><div style="font-weight: 600;">${res.username}</div></td>
+                    <td><span style="color: var(--text-muted)">${res.expiry_date}</span></td>
+                    <td>${res.user_count} / ${res.max_users > 0 ? res.max_users : '∞'} Active</td>
+                    <td>${res.bandwidth_used_gb} GB / ${res.max_bandwidth_gb > 0 ? res.max_bandwidth_gb : '∞'}</td>
+                    <td><span class="status-badge ${res.is_expired ? 'status-locked' : 'status-active'}">${res.is_expired ? 'EXPIRED' : 'OPERATIONAL'}</span></td>
+                    <td style="text-align: right;">
+                        <button class="btn-premium" style="padding: 8px 12px; background: var(--danger);" onclick="deleteReseller(${res.id})">
+                            <i class="fas fa-user-minus"></i>
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        async function loadSSHAccounts() {
+            const r = await fetch('/api/ssh_accounts');
+            const data = await r.json();
+            document.getElementById('ssh-accounts-list').innerHTML = data.map(acc => `
+                <tr class="animate-fade">
+                    <td><div style="font-weight: 600;">${acc.username}</div></td>
+                    <td>${acc.expiry_date}</td>
+                    <td>${acc.bandwidth_used_gb} GB Used</td>
+                    <td><span class="status-badge ${acc.status === 'active' ? 'status-active' : 'status-locked'}">${acc.status.toUpperCase()}</span></td>
+                    <td style="text-align: right;">
+                        <button class="btn-premium" style="padding: 8px 12px;" onclick="location.href='/account/${acc.id}/info'">
+                            <i class="fas fa-cog"></i>
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        async function loadZivpn() {
+            const r = await fetch('/api/zivpn_passwords');
+            const data = await r.json();
+            document.getElementById('zivpn-passwords-list').innerHTML = data.map(pwd => `
+                <div class="glass-card animate-fade" style="padding: 15px; display: flex; justify-content: space-between; align-items: center;">
+                    <code style="color: var(--primary); font-weight: 600;">${pwd}</code>
+                    <form action="/admin/zivpn_passwords" method="POST" style="margin: 0;">
+                        <input type="hidden" name="action" value="remove">
+                        <input type="hidden" name="password" value="${pwd}">
+                        <button type="submit" style="background: none; border: none; color: var(--danger); cursor: pointer;">
+                            <i class="fas fa-trash-xmark"></i>
+                        </button>
+                    </form>
+                </div>
+            `).join('');
+        }
+
+        function deleteReseller(id) {
+            if(confirm('Revoke all reseller privileges and terminate their associated user node sessions?')) {
+                const f = document.createElement('form'); f.method = 'POST'; f.action = `/admin/reseller/${id}/delete`;
+                document.body.appendChild(f); f.submit();
+            }
+        }
+
+        // Initialize Analytics Chart
+        const ctx = document.getElementById('mainAnalyticsChart').getContext('2d');
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: ['00:00', '04:00', '08:00', '12:00', '16:00', '20:00', 'Now'],
+                datasets: [{
+                    label: 'System Egress (GB)',
+                    data: [12, 15, 45, 32, 28, 55, {{ total_bandwidth_gb }}],
+                    borderColor: '#667eea',
+                    backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                    tension: 0.4,
+                    fill: true,
+                    pointRadius: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: { legend: { display: false } },
+                scales: {
+                    y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#6b7280' } },
+                    x: { grid: { display: false }, ticks: { color: '#6b7280' } }
+                }
+            }
+        });
+
+        // Live Node Pulse
+        setInterval(async () => {
+            const r = await fetch('/api/stats');
+            const d = await r.json();
+            document.getElementById('online-count').innerText = d.online_count;
+        }, 5000);
+    </script>
+</body>
+</html>

@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Identity Matrix | Nova-XTunnel</title>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        body {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 40px 20px;
+            background: #05050a;
+        }
+
+        .identity-card {
+            width: 100%;
+            max-width: 700px;
+            padding: 50px;
+            position: relative;
+        }
+
+        .identity-card::before {
+            content: 'SECURE DATA';
+            position: absolute;
+            top: 20px;
+            right: 30px;
+            font-size: 10px;
+            letter-spacing: 3px;
+            color: var(--primary);
+            opacity: 0.5;
+        }
+
+        .profile-header {
+            display: flex;
+            align-items: center;
+            gap: 30px;
+            margin-bottom: 40px;
+            border-bottom: 1px solid var(--card-border);
+            padding-bottom: 30px;
+        }
+
+        .profile-icon {
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            border-radius: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 32px;
+            box-shadow: 0 10px 30px -5px var(--primary-glow);
+        }
+
+        .profile-title h1 { font-size: 28px; margin-bottom: 5px; }
+        .profile-title p { color: var(--text-dim); font-size: 14px; text-transform: uppercase; letter-spacing: 1px; }
+
+        .data-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+
+        .data-point {
+            padding: 20px;
+            background: rgba(255,255,255,0.02);
+            border-radius: 18px;
+            border: 1px solid var(--card-border);
+        }
+
+        .point-label { color: var(--text-dim); font-size: 11px; text-transform: uppercase; margin-bottom: 8px; letter-spacing: 1px; }
+        .point-value { font-family: 'JetBrains Mono', monospace; font-size: 16px; color: var(--text-main); }
+
+        .connection-manifest {
+            background: rgba(0,0,0,0.3);
+            border-radius: 20px;
+            padding: 25px;
+            margin-top: 20px;
+        }
+
+        .manifest-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 12px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+
+        .manifest-item:last-child { border: none; }
+
+        @media print {
+            .sidebar, .btn-premium { display: none !important; }
+            .glass-card { border: none; box-shadow: none; }
+            body { background: white; color: black; }
+        }
+    </style>
+</head>
+<body>
+    <div class="glass-card identity-card animate-fade">
+        <div class="profile-header">
+            <div class="profile-icon">
+                <i class="fas fa-fingerprint"></i>
+            </div>
+            <div class="profile-title">
+                <h1>{{ account.username }}</h1>
+                <p>Node Access Certificate</p>
+            </div>
+        </div>
+
+        <div class="data-grid">
+            <div class="data-point">
+                <div class="point-label">System Password</div>
+                <div class="point-value" style="color: var(--primary)">{{ account.password }}</div>
+            </div>
+            <div class="data-point">
+                <div class="point-label">Expiry Protocol</div>
+                <div class="point-value">{{ account.expiry_date }}</div>
+            </div>
+            <div class="data-point">
+                <div class="point-label">Data Allocation</div>
+                <div class="point-value">{{ account.bandwidth_limit_gb }} GB</div>
+            </div>
+            <div class="data-point">
+                <div class="point-label">Current Egress</div>
+                <div class="point-value">{{ account.bandwidth_used_gb }} GB</div>
+            </div>
+        </div>
+
+        <div class="input-group">
+            <label>Usage Analytics ({{ account.bandwidth_percent }}%)</label>
+            <div class="progress-bar" style="height: 10px;">
+                <div class="progress-fill" style="width: {{ account.bandwidth_percent }}%"></div>
+            </div>
+        </div>
+
+        <div class="connection-manifest">
+            <h4 style="font-size: 13px; margin-bottom: 15px; color: var(--text-muted)">CONNECTIVITY ENDPOINTS</h4>
+            <div class="manifest-item">
+                <span class="info-label">Direct Node</span>
+                <span class="info-value">{{ account.server_ip }}:22</span>
+            </div>
+            <div class="manifest-item">
+                <span class="info-label">WebSocket Tunnel</span>
+                <span class="info-value">{{ account.server_ip }}:80</span>
+            </div>
+            <div class="manifest-item">
+                <span class="info-label">TLS Encrypted</span>
+                <span class="info-value">{{ account.server_ip }}:443</span>
+            </div>
+            <div class="manifest-item">
+                <span class="info-label">SlowDNS Zone</span>
+                <span class="info-value">laboking.freesurf237.online</span>
+            </div>
+        </div>
+
+        <div style="display: flex; gap: 15px; margin-top: 40px;">
+            <button class="btn-premium" style="flex: 1; background: var(--card-bg);" onclick="window.print()">
+                <i class="fas fa-print"></i> Generate PDF
+            </button>
+            <button class="btn-premium" style="flex: 1;" onclick="history.back()">
+                <i class="fas fa-chevron-left"></i> Return to Hub
+            </button>
+        </div>
+    </div>
+</body>
+</html>
