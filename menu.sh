@@ -79,7 +79,7 @@ PYTHON_PROXY_SERVICE="/etc/systemd/system/python-proxy.service"
 PYTHON_PROXY_SCRIPT="/opt/nova-xtunnel/proxies/proxy.py"
 
 DESEC_TOKEN="V55cFY8zTictLCPfviiuX5DHjs15"
-DESEC_DOMAIN="manager.nova-xtunnel.qzz.io"
+DESEC_DOMAIN="manager.firewallfalcon.qzz.io"
 
 SELECTED_USER=""
 UNINSTALL_MODE="interactive"
