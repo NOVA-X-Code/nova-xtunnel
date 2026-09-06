@@ -517,14 +517,7 @@ _ff_flush_dnat_to_port() {
     done < <(iptables -t nat -S PREROUTING 2>/dev/null | grep -- "--to-destination :${internal_port}$")
 }
 
-# Rebuilds ALL managed UDP DNAT rules (udp-custom + ZiVPN) together in a single pass,
-# sorted in ascending port order. This is what guarantees the two never overlap and never
-# leave stale/overlapping leftovers - it MUST be called (not each service's own private
-# flush-and-add-its-own-segments logic) any time EITHER protocol is installed, reconfigured,
-# or uninstalled, because a change to one directly affects how the other's range must be
-# split (e.g. udp-custom must carve a hole out of its own range for ZiVPN's, and should
-# reclaim that hole if ZiVPN gets uninstalled). Only ever reserves ZiVPN's range as an
-# exclusion for udp-custom while ZiVPN is ACTUALLY installed - not just "in case".
+
 _ff_rebuild_udp_dnat_rules() {
     _ff_flush_dnat_to_port "$UDP_CUSTOM_LISTEN_PORT"
     _ff_flush_dnat_to_port "$ZIVPN_LISTEN_PORT"
@@ -2819,7 +2812,7 @@ configure_edge_stack() {
         return 1
     fi
 
-    systemctl daemon-reload
+    systemctl daemon-reload   
     systemctl enable nginx >/dev/null 2>&1
     systemctl enable haproxy >/dev/null 2>&1
 
@@ -4617,19 +4610,20 @@ generate_client_config() {
 
     echo -e "\n${C_BOLD}${C_PURPLE}--- 📱 Client Connection Configuration ---${C_RESET}"
     echo -e "${C_CYAN}Copy the details below to your clipboard:${C_RESET}\n"
-
-    echo -e "${C_YELLOW}========================================${C_RESET}"
+    echo -e "╔════════════════════════════╗"
+    echo -e "    🌐  𝗡𝗢𝗩𝗔 𝗫𝗧𝗨𝗡𝗡𝗘𝗟  🌐"
+    echo -e "╚════════════════════════════╝"
+    echo -e "${C_YELLOW}═══════════════════════════════${C_RESET}"
     echo -e "👤 ${C_BOLD}User Details${C_RESET}"
     echo -e "   • Username: ${C_WHITE}$user${C_RESET}"
     echo -e "   • Password: ${C_WHITE}$pass${C_RESET}"
     echo -e "   • Host/IP : ${C_WHITE}$host_domain${C_RESET}"
-    echo -e "${C_YELLOW}========================================${C_RESET}"
+    echo -e "${C_YELLOW}═══════════════════════════════${C_RESET}"
     
     # 1. SSH Direct
     echo -e "\n🔹 ${C_BOLD}SSH Direct${C_RESET}:"
     echo -e "   • Host: $host_domain"
     echo -e "   • Port: 22"
-    echo -e "   • payload: 8080,8888,444(Standard SSH)"
 
     # 2. HAProxy edge stack
     if systemctl is-active --quiet haproxy; then
@@ -4637,7 +4631,6 @@ generate_client_config() {
         echo -e "   • Host: $host_domain"
         echo -e "   • Port 80: HTTP payloads / raw SSH"
         echo -e "   • Port 443: TLS / SNI / SSL payloads"
-        echo -e "   • Internal handoff: Nginx ${NGINX_INTERNAL_HTTP_PORT}/${NGINX_INTERNAL_TLS_PORT}"
         echo -e "   • SNI (BugHost): $host_domain (or your preferred SNI)"
     elif systemctl is-active --quiet nginx; then
         echo -e "\n🔹 ${C_BOLD}Internal Nginx Proxy${C_RESET}:"
@@ -4668,7 +4661,7 @@ generate_client_config() {
         systemctl is-active --quiet pyproxy-ws && echo -e "   • WebSocket Port: ${WS_PORT} (HTTP 101)"
     fi
     
-    echo -e "${C_YELLOW}========================================${C_RESET}"
+    echo -e "${C_YELLOW}═══════════════════════════════${C_RESET}"
     press_enter
 }
 

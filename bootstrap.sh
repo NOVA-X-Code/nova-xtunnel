@@ -55,21 +55,20 @@ else
   echo "    Rerun with 'bash web-panel/deploy/install.sh --domain <your-domain>' to install it."
   DO_WEB="n"
 fi
+
 if [[ "$DO_WEB" =~ ^[oOyY] ]]; then
   if systemctl list-unit-files 2>/dev/null | grep -q "^novaxpanel.service"; then
     echo "🔄 Web panel already installed → update (code + restart)."
     bash web-panel/update.sh
   else
+    
     if [ -r /dev/tty ]; then
-      read -r -p "👉 Domain name for the web panel (e.g., panel.yourdomain.com): " DOMAIN < /dev/tty
+      read -r -p "👉 Domain name for the web panel (e.g., panel.yourdomain.com), or leave empty for auto-detection: " DOMAIN < /dev/tty
     else
-      echo "⚠️  No interactive terminal detected — impossible to request the domain name."
-      echo "    Rerun with 'bash web-panel/deploy/install.sh --domain <your-domain>' to install it."
       DOMAIN=""
     fi
-    if [ -n "$DOMAIN" ]; then
-      bash web-panel/deploy/install.sh --domain "$DOMAIN"
-    fi
+
+    bash web-panel/deploy/install.sh --domain "$DOMAIN"
   fi
 fi
 
